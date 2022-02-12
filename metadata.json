@@ -1,0 +1,9 @@
+{
+  "name": "Colorful Battery Indicator",
+  "description": "Make color of battery indicator change with level of battery charge",
+  "uuid": "colorful-battery-indicator@aneruam",
+  "shell-version": [
+    "3.38"
+  ],
+  "version": 1
+}

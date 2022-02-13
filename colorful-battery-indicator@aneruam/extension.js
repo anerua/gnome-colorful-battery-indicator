@@ -90,6 +90,7 @@ const ColorfulBatteryIndicator = new Lang.Class({
     disable() {
         this._power.indicators.replace_child(this._indicator, this._origIndicator);
         this._power._proxy.disconnect(this._powerProxyId);
+        this._indicator = null;
         this._indicator.destroy();
     }
 

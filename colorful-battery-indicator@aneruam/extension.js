@@ -87,6 +87,8 @@ const ColorfulBatteryIndicator = new Lang.Class({
         _onPowerChanged.call(power);
     },
 
+    // This extension uses the 'unlock-user' session mode.
+    // This is to ensure the battery indicator is remains the same in the lock screen
     disable() {
         this._power.indicators.replace_child(this._indicator, this._origIndicator);
         this._power._proxy.disconnect(this._powerProxyId);

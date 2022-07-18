@@ -82,7 +82,7 @@ const ColorfulBatteryIndicator = GObject.registerClass(
                 bat_icon.gicon = Gio.icon_new_for_string(`${Me.path}/icons/${bat_icon_name}.svg`);
             }
     
-            this._powerProxyId = power._proxy.connect('g-properties-changed', Lang.bind(power, _onPowerChanged));
+            this._powerProxyId = power._proxy.connect('g-properties-changed', _onPowerChanged.bind(power));
             _onPowerChanged.call(power);
         }
     

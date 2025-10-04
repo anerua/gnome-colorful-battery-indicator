@@ -14,8 +14,6 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
- * 
- * Based on Circular Battery Indicator by Yannick Tanner
  */
 
 import St from 'gi://St';
@@ -36,7 +34,6 @@ export default class ColorfulBatteryIndicator extends Extension {
     _powerProxyId = null;
 
     _origSysIndicator = null;
-    _origPowerToggleIcon = null;
 
     _percentage = null;
     _charging = false;
@@ -64,18 +61,11 @@ export default class ColorfulBatteryIndicator extends Extension {
     }
 
     disable() {
-        this._getBattery((proxy, system) => {
-            const { powerToggle } = system._systemItem;
+        this._getSystem((proxy, system) => {
             if (this._origSysIndicator) {
                 system.replace_child(
                     system._indicator,
                     this._origSysIndicator
-                );
-            }
-            if (this._origPowerToggleIcon) {
-                powerToggle._box.replace_child(
-                    powerToggle._icon,
-                    this._origPowerToggleIcon
                 );
             }
             if (this._powerProxyId) {
@@ -89,7 +79,7 @@ export default class ColorfulBatteryIndicator extends Extension {
         }
     }
 
-    _getBattery(callback) {
+    _getSystem(callback) {
         let system = Main.panel.statusArea.quickSettings._system;
         if (system && system._systemItem._powerToggle) {
             callback(system._systemItem._powerToggle._proxy, system)
@@ -98,7 +88,7 @@ export default class ColorfulBatteryIndicator extends Extension {
 
     _setup() {
         if (!this._setupDone) {
-            this._getBattery((proxy, system) => {
+            this._getSystem((proxy, system) => {
                 const extensionObject = Extension.lookupByURL(import.meta.url);
                 const path = extensionObject.path;
     
@@ -108,10 +98,7 @@ export default class ColorfulBatteryIndicator extends Extension {
                 let bat_icon_name = 'battery-missing';
                 bat_icon.gicon = Gio.icon_new_for_string(`${path}/icons/${bat_icon_name}.svg`);
     
-                const { powerToggle } = system._systemItem;
-    
                 this._origSysIndicator = system._indicator;
-                this._origPowerToggleIcon = powerToggle._icon;
     
                 const _onPowerChanged = () => {
                     if (proxy.IsPresent) {
@@ -137,7 +124,6 @@ export default class ColorfulBatteryIndicator extends Extension {
                         system._indicator,
                         bat_icon
                     );
-                    powerToggle._box.replace_child(powerToggle._icon, bat_icon);
                 };
     
                 this._powerProxyId = proxy.connect(

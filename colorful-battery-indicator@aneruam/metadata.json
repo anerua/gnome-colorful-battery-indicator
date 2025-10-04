@@ -3,9 +3,9 @@
   "description": "Make color of battery indicator change with level of battery charge",
   "uuid": "colorful-battery-indicator@aneruam",
   "shell-version": [
-    "3.36", "3.38", "40", "41", "42"
+    "46"
   ],
-  "version": 9,
+  "version": 10,
   "session-modes": ["user", "unlock-dialog"],
   "url": "https://github.com/anerua/gnome-colorful-battery-indicator"
 }

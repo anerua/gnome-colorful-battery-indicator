@@ -18,86 +18,145 @@
  * Based on Circular Battery Indicator by Yannick Tanner
  */
 
-/* exported init */
+import St from 'gi://St';
+import Gio from 'gi://Gio';
+import GLib from 'gi://GLib';
+import UPowerGlib from 'gi://UPowerGlib';
+import * as Main from 'resource:///org/gnome/shell/ui/main.js';
+import { Extension } from 'resource:///org/gnome/shell/extensions/extension.js';
 
-const GObject = imports.gi.GObject;
-const St = imports.gi.St;
-const Gio = imports.gi.Gio;
-const Main = imports.ui.main;
-const UPower = imports.gi.UPowerGlib;
-const Me = imports.misc.extensionUtils.getCurrentExtension();
+export default class ColorfulBatteryIndicator extends Extension {
 
-const ColorfulBatteryIndicator = GObject.registerClass(
-    class ColorfulBatteryIndicator extends GObject.Object {
+    // This extension uses the 'unlock-user' session mode.
+    // This is to ensure the battery indicator remains the same in the lock screen
 
-        _percentage = null;
-        _charging = false;
-        _full = false;
-        
-        _indicator = null;
+    _initTimeout = null;
+    _setupDone = false;
+    // _setupProxyId = null;
+
+    _powerProxyId = null;
+
+    _origSysIndicator = null;
+    _origPowerToggleIcon = null;
+
+    _percentage = null;
+    _charging = false;
+    _full = false;
     
-        _powerProxyId = null;
-        
-        get _power() {
-            return Main.panel.statusArea.aggregateMenu._power;
-        }
-        
-        _init() {
-            this._origIndicator = this._power._indicator;
-        }
-        
-        enable() {
-            let bat_icon = new St.Icon({
-                style_class: 'system-status-icon'
-            });
-            let bat_icon_name = 'battery-missing';
-            bat_icon.gicon = Gio.icon_new_for_string(`${Me.path}/icons/${bat_icon_name}.svg`);
-            this._indicator = bat_icon;
-    
-            let that = this;
-            let power = this._power;
-    
-            // gfx
-            power.indicators.replace_child(this._origIndicator, this._indicator);
-    
-            // events
-            let _onPowerChanged = function() {
-                if (this._proxy.IsPresent) {
-                    that._percentage = this._proxy.Percentage;
-                    that._charging = this._proxy.State == UPower.DeviceState.CHARGING;
-                    that._full = this._proxy.State == UPower.DeviceState.FULLY_CHARGED;
+    enable() {
+        // this._getBattery(proxy => {
+        //     this._setupProxyId = proxy.connect('g-properties-changed', () => {
+        //         this._setup();
+        //     })
+        // });
+
+        this._setup();
+
+        this._initTimeout = GLib.timeout_add_seconds(
+            GLib.PRIORITY_DEFAULT,
+            1,
+            () => {
+                if (!this._setupDone) {
+                    this._setup();
+                    return GLib.SOURCE_CONTINUE;
                 } else {
-                    that._percentage = null;
+                    GLib.Source.remove(this._initTimeout);
+                    return GLib.SOURCE_REMOVE;
                 }
-    
-                if (that._percentage && that._full){
-                    bat_icon_name = 'battery-full';
-                } else if (that._percentage) {
-                    // Group battery percentage into equivalent decade and display corresponding icon
-                    let perc_range = Math.floor(that._percentage / 10) * 10;
-                    bat_icon_name = that._charging ? `battery-${perc_range}-charging` : `battery-${perc_range}`;
-                } else {
-                    bat_icon_name = 'battery-missing';
-                }
-                bat_icon.gicon = Gio.icon_new_for_string(`${Me.path}/icons/${bat_icon_name}.svg`);
             }
-    
-            this._powerProxyId = power._proxy.connect('g-properties-changed', _onPowerChanged.bind(power));
-            _onPowerChanged.call(power);
-        }
-    
-        // This extension uses the 'unlock-user' session mode.
-        // This is to ensure the battery indicator is remains the same in the lock screen
-        disable() {
-            this._power.indicators.replace_child(this._indicator, this._origIndicator);
-            this._power._proxy.disconnect(this._powerProxyId);
-            this._indicator = null;
-        }
+        );
 
     }
-    
-);
 
-function init() {
-    return new ColorfulBatteryIndicator();
+    disable() {
+        this._getBattery((proxy, system) => {
+            const { powerToggle } = system._systemItem;
+            if (this._origSysIndicator) {
+                system.replace_child(
+                    system._indicator,
+                    this._origSysIndicator
+                );
+            }
+            if (this._origPowerToggleIcon) {
+                powerToggle._box.replace_child(
+                    powerToggle._icon,
+                    this._origPowerToggleIcon
+                );
+            }
+            if (this._powerProxyId) {
+                proxy.disconnect(this._powerProxyId);
+            }
+            // if (this._setupProxyId) {
+            //     proxy.disconnect(this._setupProxyId);
+            // }
+        });
+        
+        if (this._initTimeout) {
+            GLib.Source.remove(this._initTimeout);
+            this._initTimeout = null;
+        }
+    }
+
+    _getBattery(callback) {
+        let system = Main.panel.statusArea.quickSettings._system;
+        if (system && system._systemItem._powerToggle) {
+            callback(system._systemItem._powerToggle._proxy, system)
+        }
+    }
+
+    _setup() {
+        if (!this._setupDone) {
+            this._getBattery((proxy, system) => {
+                const extensionObject = Extension.lookupByURL(import.meta.url);
+                const path = extensionObject.path;
+    
+                let bat_icon = new St.Icon({
+                    style_class: 'system-status-icon'
+                });
+                let bat_icon_name = 'battery-missing';
+                bat_icon.gicon = Gio.icon_new_for_string(`${path}/icons/${bat_icon_name}.svg`);
+    
+                const { powerToggle } = system._systemItem;
+    
+                this._origSysIndicator = system._indicator;
+                this._origPowerToggleIcon = powerToggle._icon;
+    
+                const _onPowerChanged = () => {
+                    if (proxy.IsPresent) {
+                        this._percentage = proxy.Percentage;
+                        this._charging = proxy.State === UPowerGlib.DeviceState.CHARGING;
+                        this._full = proxy.State === UPowerGlib.DeviceState.FULLY_CHARGED;
+                    } else {
+                        this._percentage = null;
+                    }
+                            
+                    if (this._percentage && this._full) {
+                        bat_icon_name = 'battery-full';
+                    } else if (this._percentage) {
+                        // Group battery percentage into equivalent decade and display corresponding icon
+                        let perc_range = Math.floor(this._percentage / 10) * 10;
+                        bat_icon_name = this._charging ? `battery-${perc_range}-charging` : `battery-${perc_range}`;
+                    } else {
+                        bat_icon_name = 'battery-missing';
+                    }
+                    bat_icon.gicon = Gio.icon_new_for_string(`${path}/icons/${bat_icon_name}.svg`);
+
+                    system.replace_child(
+                        system._indicator,
+                        bat_icon
+                    );
+                    powerToggle._box.replace_child(powerToggle._icon, bat_icon);
+                };
+    
+                this._powerProxyId = proxy.connect(
+                    'g-properties-changed',
+                    _onPowerChanged.bind(this)
+                );
+
+                this._setupDone = true;
+            });
+        }
+    }
+
 }
+    

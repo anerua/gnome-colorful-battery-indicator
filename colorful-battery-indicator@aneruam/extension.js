@@ -32,7 +32,6 @@ export default class ColorfulBatteryIndicator extends Extension {
 
     _initTimeout = null;
     _setupDone = false;
-    // _setupProxyId = null;
 
     _powerProxyId = null;
 
@@ -44,14 +43,11 @@ export default class ColorfulBatteryIndicator extends Extension {
     _full = false;
     
     enable() {
-        // this._getBattery(proxy => {
-        //     this._setupProxyId = proxy.connect('g-properties-changed', () => {
-        //         this._setup();
-        //     })
-        // });
-
         this._setup();
 
+        // During system startup, Main.panel.statusArea.quickSettings._system is undefined
+        // So we add a timer to try to run _setup every second until _system is defined
+        // and setup is complete.
         this._initTimeout = GLib.timeout_add_seconds(
             GLib.PRIORITY_DEFAULT,
             1,
@@ -65,7 +61,6 @@ export default class ColorfulBatteryIndicator extends Extension {
                 }
             }
         );
-
     }
 
     disable() {
@@ -86,9 +81,6 @@ export default class ColorfulBatteryIndicator extends Extension {
             if (this._powerProxyId) {
                 proxy.disconnect(this._powerProxyId);
             }
-            // if (this._setupProxyId) {
-            //     proxy.disconnect(this._setupProxyId);
-            // }
         });
         
         if (this._initTimeout) {

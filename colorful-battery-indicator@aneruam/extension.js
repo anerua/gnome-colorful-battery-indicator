@@ -91,8 +91,7 @@ export default class ColorfulBatteryIndicator extends Extension {
     _setup() {
         if (!this._setupDone) {
             this._getSystem((proxy, system) => {
-                const extensionObject = Extension.lookupByURL(import.meta.url);
-                const path = extensionObject.path;
+                const path = this.path;
     
                 let bat_icon = new St.Icon({
                     style_class: 'system-status-icon'

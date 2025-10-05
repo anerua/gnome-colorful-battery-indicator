@@ -25,9 +25,6 @@ import { Extension } from 'resource:///org/gnome/shell/extensions/extension.js';
 
 export default class ColorfulBatteryIndicator extends Extension {
 
-    // This extension uses the 'unlock-user' session mode.
-    // This is to ensure the battery indicator remains the same in the lock screen
-
     _initTimeout = null;
     _setupDone = false;
 
@@ -60,6 +57,8 @@ export default class ColorfulBatteryIndicator extends Extension {
         );
     }
 
+    // This extension uses the 'unlock-user' session mode.
+    // This is to ensure the battery indicator remains the same in the lock screen
     disable() {
         this._getSystem((proxy, system) => {
             if (this._origSysIndicator) {
@@ -135,6 +134,5 @@ export default class ColorfulBatteryIndicator extends Extension {
             });
         }
     }
-
 }
     

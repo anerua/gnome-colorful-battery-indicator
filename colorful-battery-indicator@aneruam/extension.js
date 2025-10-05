@@ -14,6 +14,9 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
+ * 
+ * Uses code from Circular Battery Indicator by Yannick Tanner and
+ *  Autohide Battery by iskin
  */
 
 import St from 'gi://St';
